@@ -27,7 +27,7 @@ function HomePage() {
           <Logo size={32} />
           <div className="flex items-center gap-2">
             <button className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-text-secondary transition hover:text-text-primary">
-              <Bell className="h-4.5 w-4.5" />
+              <Bell className="h-[18px] w-[18px]" />
             </button>
             <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-primary to-info text-sm font-semibold text-primary-foreground">
               AS
