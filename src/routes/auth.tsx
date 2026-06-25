@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Shield, Lock, Users, Sparkles, Mail, KeyRound, ArrowRight, ChevronLeft } from "lucide-react";
 import { Logo } from "@/components/civisync/Logo";
 import { CommunityIllustration } from "@/components/civisync/CommunityIllustration";
-
+import { loginWithGoogle, loginAsGuest } from "@/firebase/auth";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -124,13 +124,29 @@ function AuthPage() {
 
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <button
-                    onClick={() => navigate({ to: "/home" })}
+                    onClick={async () => {
+  try {
+    await loginWithGoogle();
+    navigate({ to: "/home" });
+  } catch (error) {
+    console.error(error);
+    alert("Google Sign-In failed");
+  }
+}}
                     className="inline-flex h-12 items-center justify-center gap-2.5 rounded-2xl border border-border bg-card px-4 font-medium text-text-primary shadow-[var(--shadow-soft)] transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-card)]"
                   >
                     <GoogleIcon className="h-4 w-4" /> Google
                   </button>
                   <button
-                    onClick={() => navigate({ to: "/home" })}
+                    onClick={async () => {
+  try {
+    await loginAsGuest();
+    navigate({ to: "/home" });
+  } catch (error) {
+    console.error(error);
+    alert("Guest login failed");
+  }
+}}
                     className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-border bg-background px-4 font-medium text-text-primary transition hover:bg-surface-muted"
                   >
                     Continue as Guest

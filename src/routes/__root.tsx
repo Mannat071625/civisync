@@ -80,6 +80,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { title: "Civisync — Turning Community Reports into Coordinated Action" },
       { name: "description", content: "Lovable Generated Project" },
       { property: "og:type", content: "website" },
+
       { name: "twitter:card", content: "summary" },
       { title: "Civisync — Turning Community Reports into Coordinated Action" },
       { name: "description", content: "AI-powered civic coordination platform that turns community reports into coordinated action." },
