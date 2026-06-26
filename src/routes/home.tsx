@@ -7,6 +7,10 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/civisync/Logo";
 import { NodesBackdrop } from "@/components/civisync/NodesBackdrop";
+import { UserAvatar } from "@/components/civisync/UserAvatar";
+import { useAuth } from "@/hooks/useAuth";
+import { logout } from "@/firebase/auth";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -19,6 +23,8 @@ export const Route = createFileRoute("/home")({
 });
 
 function HomePage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Header */}
@@ -26,24 +32,42 @@ function HomePage() {
         <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-4">
           <Logo size={32} />
           <div className="flex items-center gap-2">
-            <button className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-text-secondary transition hover:text-text-primary">
-              <Bell className="h-[18px] w-[18px]" />
-            </button>
-            <div className="grid h-10 w-10 place-items-center rounded-full bg-gradient-to-br from-primary to-info text-sm font-semibold text-primary-foreground">
-              AS
-            </div>
-          </div>
+  <button className="grid h-10 w-10 place-items-center rounded-full border border-border bg-card text-text-secondary transition hover:text-text-primary">
+    <Bell className="h-[18px] w-[18px]" />
+  </button>
+
+  <button
+    onClick={async () => {
+      await logout();
+      navigate({ to: "/auth" });
+    }}
+    className="rounded-xl border border-border px-3 py-2 text-sm hover:bg-card"
+  >
+    Logout
+  </button>
+
+  <UserAvatar />
+</div>
         </div>
       </header>
 
       <main className="mx-auto max-w-6xl space-y-10 px-5 pt-8">
         {/* Title */}
-        <section>
-          <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary">Community Pulse</p>
-          <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
-            AI-powered insights for your neighbourhood.
-          </h1>
-        </section>
+       <section>
+  <p className="text-sm font-medium uppercase tracking-[0.18em] text-primary">
+    Welcome,
+  </p>
+
+  <h1 className="mt-2 font-display text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+    {user?.isAnonymous
+      ? "Guest User"
+      : user?.displayName || "Citizen"}
+  </h1>
+
+  <p className="mt-2 text-text-secondary">
+    AI-powered insights for your neighbourhood.
+  </p>
+</section>
 
         {/* AI insight card */}
         <AIInsightHero />
