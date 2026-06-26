@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Sparkles, MapPin, Camera, MessagesSquare, Bot, ArrowRight, ArrowUpRight,
@@ -76,7 +76,7 @@ function HomePage() {
         <section>
           <SectionTitle title="Quick Actions" />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <QuickAction icon={<Camera />} label="Observe & Report" tone="primary" />
+            <QuickAction icon={<Camera />} label="Observe & Report" tone="primary"  onClick={() => navigate({ to: "/report" })}/>
             <QuickAction icon={<MapPin />} label="Live Map" tone="info" />
             <QuickAction icon={<MessagesSquare />} label="Community Feed" tone="accent" />
             <QuickAction icon={<Bot />} label="Ask Civisync AI" tone="secondary" />
@@ -120,7 +120,7 @@ function HomePage() {
       </main>
 
       {/* FAB */}
-      <button className="fixed bottom-24 right-5 z-40 inline-flex h-14 items-center gap-2 rounded-full bg-primary pl-5 pr-6 font-medium text-primary-foreground shadow-[var(--shadow-fab)] transition hover:-translate-y-0.5 active:scale-95 sm:bottom-8">
+      <button onClick={() => navigate({ to: "/report" })} className="fixed bottom-24 right-5 z-40 inline-flex h-14 items-center gap-2 rounded-full bg-primary pl-5 pr-6 font-medium text-primary-foreground shadow-[var(--shadow-fab)] transition hover:-translate-y-0.5 active:scale-95 sm:bottom-8">
         <span className="grid h-9 w-9 place-items-center rounded-full bg-white/15">
           <Plus className="h-5 w-5" />
         </span>
@@ -192,7 +192,17 @@ function AIInsightHero() {
   );
 }
 
-function QuickAction({ icon, label, tone }: { icon: React.ReactNode; label: string; tone: "primary"|"info"|"accent"|"secondary" }) {
+function QuickAction({
+  icon,
+  label,
+  tone,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  tone: "primary" | "info" | "accent" | "secondary";
+  onClick?: () => void;
+}) {
   const toneBg: Record<string, string> = {
     primary: "bg-primary/10 text-primary",
     info: "bg-info/10 text-info",
@@ -200,7 +210,7 @@ function QuickAction({ icon, label, tone }: { icon: React.ReactNode; label: stri
     secondary: "bg-secondary/10 text-secondary",
   };
   return (
-    <button className="card-lift group flex flex-col items-start gap-4 rounded-3xl border border-border bg-card p-5 text-left shadow-[var(--shadow-soft)]">
+    <button onClick={onClick} className="card-lift group flex flex-col items-start gap-4 rounded-3xl border border-border bg-card p-5 text-left shadow-[var(--shadow-soft)]">
       <span className={`grid h-11 w-11 place-items-center rounded-2xl ${toneBg[tone]}`}>
         <span className="[&>svg]:h-5 [&>svg]:w-5">{icon}</span>
       </span>
