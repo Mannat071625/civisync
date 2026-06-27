@@ -11,6 +11,7 @@ import { UserAvatar } from "@/components/civisync/UserAvatar";
 import { useAuth } from "@/hooks/useAuth";
 import { logout } from "@/firebase/auth";
 import { useNavigate } from "@tanstack/react-router";
+import { getReports } from "@/lib/dashboard";
 
 export const Route = createFileRoute("/home")({
   head: () => ({
@@ -24,7 +25,56 @@ export const Route = createFileRoute("/home")({
 
 function HomePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user ,loading} = useAuth();
+  if (loading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      Loading...
+    </div>
+  );
+}
+  console.log("Current user:", user);
+  const [reports, setReports] = useState<any[]>([]);
+  const insights = [
+  {
+    icon: <MessagesSquare className="h-4 w-4" />,
+    text: `Total reports submitted: ${reports.length}`,
+    tone: "primary" as const,
+  },
+  {
+    icon: <TrafficCone className="h-4 w-4" />,
+    text: `High severity reports: ${
+      reports.filter((r) => r.severity === "High").length
+    }`,
+    tone: "info" as const,
+  },
+  {
+    icon: <Clock className="h-4 w-4" />,
+    text: `Pending reports: ${
+      reports.filter((r) => r.status === "Pending").length
+    }`,
+    tone: "success" as const,
+  },
+];
+const [loadingReports, setLoadingReports] = useState(true);
+
+useEffect(() => {
+  if (!user) return;
+
+  async function loadReports() {
+    try {
+      const data = await getReports();
+      setReports(data);
+    } catch (err) {
+      console.error("Dashboard Error:", err);
+    } finally {
+      setLoadingReports(false);
+    }
+  }
+
+  loadReports();
+}, [user]);
+
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Header */}
@@ -69,8 +119,10 @@ function HomePage() {
   </p>
 </section>
 
+
+
         {/* AI insight card */}
-        <AIInsightHero />
+       <AIInsightHero reports={reports} />
 
         {/* Quick actions */}
         <section>
@@ -78,8 +130,19 @@ function HomePage() {
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <QuickAction icon={<Camera />} label="Observe & Report" tone="primary"  onClick={() => navigate({ to: "/report" })}/>
             <QuickAction icon={<MapPin />} label="Live Map" tone="info" />
-            <QuickAction icon={<MessagesSquare />} label="Community Feed" tone="accent" />
-            <QuickAction icon={<Bot />} label="Ask Civisync AI" tone="secondary" />
+            <QuickAction
+  icon={<MessagesSquare />}
+  label="Community Feed"
+  tone="accent"
+  onClick={() => {
+    document
+      .getElementById("community-feed")
+      ?.scrollIntoView({
+        behavior: "smooth",
+      });
+  }}
+/>
+            <QuickAction icon={<Bot />} label="Ask Civisync AI" tone="secondary"  onClick={() => navigate({ to: "/assistant" })}/>
           </div>
         </section>
 
@@ -87,22 +150,49 @@ function HomePage() {
         <section>
           <SectionTitle title="Nearby Issues" action="See all" />
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {NEARBY.map((i) => <IssueCard key={i.title} {...i} />)}
+          {reports.map((report: any) => (
+  <IssueCard
+    key={report.id}
+    title={report.description}
+    category={report.category}
+    distance="Nearby"
+    severity={report.severity}
+    verifications={1}
+    status={report.status}
+    location={report.location}
+  />
+))}
           </div>
         </section>
 
         {/* Community feed + AI insights */}
-        <section className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <section
+  id="community-feed"
+  className="grid grid-cols-1 gap-6 lg:grid-cols-5"
+>
           <div className="lg:col-span-3">
             <SectionTitle title="Community Feed" />
             <div className="rounded-3xl border border-border bg-card p-2 shadow-[var(--shadow-soft)]">
-              {FEED.map((f, i) => <FeedRow key={i} {...f} divider={i < FEED.length - 1} />)}
+              {reports.map((report: any, index: number) => (
+  <FeedRow
+    key={report.id}
+    name={report.userName || "Citizen"}
+    initials={(report.userName || "C").charAt(0).toUpperCase()}
+    text={report.description}
+    status={report.status}
+    time="Just now"
+    color="var(--color-primary)"
+    divider={index < reports.length - 1}
+  />
+))}
             </div>
           </div>
           <div className="lg:col-span-2">
             <SectionTitle title="AI Insights" />
             <div className="space-y-3">
-              {INSIGHTS.map((s, i) => <InsightRow key={i} {...s} />)}
+              {insights.map((s, i) => (
+  <InsightRow key={i} {...s} />
+))}
             </div>
           </div>
         </section>
@@ -158,7 +248,27 @@ function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: s
   );
 }
 
-function AIInsightHero() {
+function AIInsightHero({ reports }: { reports: any[] }) {
+  const totalReports = reports.length;
+
+const highPriority = reports.filter(
+  (r) => r.severity === "High"
+).length;
+
+const pendingReports = reports.filter(
+  (r) => r.status === "Pending"
+).length;
+
+const categoryCount: Record<string, number> = {};
+
+reports.forEach((r) => {
+  categoryCount[r.category] = (categoryCount[r.category] || 0) + 1;
+});
+
+const topCategory =
+  Object.entries(categoryCount).sort(
+    (a, b) => b[1] - a[1]
+  )[0]?.[0] || "No issues";
   return (
     <div className="relative overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-[var(--shadow-card)] sm:p-8">
       <NodesBackdrop className="opacity-60" />
@@ -172,10 +282,11 @@ function AIInsightHero() {
             <Sparkles className="h-3.5 w-3.5" /> AI Insight · Just now
           </div>
           <h3 className="mt-3 font-display text-2xl font-semibold leading-snug text-text-primary sm:text-[26px]">
-            2 high-priority civic issues detected within your area.
+            {highPriority} high-priority civic issue{highPriority !== 1 ? "s" : ""} detected within your area.
           </h3>
           <p className="mt-2 text-text-secondary">
-            Civisync analysed 47 reports in the last 24 hours. A water leak on Linden Ave and a traffic-light outage near Hillside Park need community attention.
+            Civisync has analyzed {totalReports} report{totalReports !== 1 ? "s" : ""}.
+          The most frequently reported issue is <strong>{topCategory}</strong>. Currently, {pendingReports} report{pendingReports !== 1 ? "s are" : " is"} awaiting action.
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
@@ -224,11 +335,11 @@ function QuickAction({
 
 type Issue = {
   title: string;
-  category: "Water" | "Lighting" | "Waste" | "Greenery" | "Traffic";
+  category: string;
   distance: string;
   severity: "Low" | "Medium" | "High";
   verifications: number;
-  status: "Open" | "In progress" | "Verified" | "Resolved";
+  status: string;
   location: string;
 };
 
@@ -238,15 +349,48 @@ const NEARBY: Issue[] = [
   { title: "Overflowing bins at Park Plaza", category: "Waste", distance: "0.9 km", severity: "Low", verifications: 6, status: "Open", location: "Ward 12" },
 ];
 
-function categoryMeta(c: Issue["category"]) {
-  const map = {
-    Water:    { icon: <Droplet className="h-4 w-4" />, color: "var(--color-info)" },
-    Lighting: { icon: <Lightbulb className="h-4 w-4" />, color: "var(--color-accent)" },
-    Waste:    { icon: <Trash2 className="h-4 w-4" />, color: "var(--color-secondary)" },
-    Greenery: { icon: <TreePine className="h-4 w-4" />, color: "var(--color-success)" },
-    Traffic:  { icon: <TrafficCone className="h-4 w-4" />, color: "var(--color-danger)" },
+function categoryMeta(category: string) {
+  const c = category.toLowerCase();
+
+  if (c.includes("road") || c.includes("traffic") || c.includes("pothole")) {
+    return {
+      icon: <TrafficCone className="h-4 w-4" />,
+      color: "var(--color-danger)",
+    };
+  }
+
+  if (c.includes("water") || c.includes("leak")) {
+    return {
+      icon: <Droplet className="h-4 w-4" />,
+      color: "var(--color-info)",
+    };
+  }
+
+  if (c.includes("light")) {
+    return {
+      icon: <Lightbulb className="h-4 w-4" />,
+      color: "var(--color-accent)",
+    };
+  }
+
+  if (c.includes("waste") || c.includes("garbage")) {
+    return {
+      icon: <Trash2 className="h-4 w-4" />,
+      color: "var(--color-secondary)",
+    };
+  }
+
+  if (c.includes("tree") || c.includes("green")) {
+    return {
+      icon: <TreePine className="h-4 w-4" />,
+      color: "var(--color-success)",
+    };
+  }
+
+  return {
+    icon: <ShieldCheck className="h-4 w-4" />,
+    color: "var(--color-primary)",
   };
-  return map[c];
 }
 
 function IssueCard(i: Issue) {
@@ -329,12 +473,6 @@ function FeedRow({ name, initials, text, status, time, color, divider }: typeof 
   );
 }
 
-/* Insights */
-const INSIGHTS = [
-  { icon: <Droplet className="h-4 w-4" />, text: "Water leakage reports increased 22% this week.", tone: "info" as const, trend: "up" as const },
-  { icon: <Lightbulb className="h-4 w-4" />, text: "Street lighting issues reduced by 18% in Ward 9.", tone: "success" as const, trend: "down" as const },
-  { icon: <Users2 className="h-4 w-4" />, text: "Riverside is the most active community this month.", tone: "primary" as const },
-];
 
 function InsightRow({ icon, text, tone, trend }: { icon: React.ReactNode; text: string; tone: "info"|"success"|"primary"; trend?: "up"|"down" }) {
   const toneCls: Record<string, string> = {

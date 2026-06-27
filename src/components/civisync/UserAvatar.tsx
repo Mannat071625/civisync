@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export function UserAvatar() {
   const { user } = useAuth();
+  
 
   if (!user) {
     return (

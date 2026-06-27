@@ -5,6 +5,10 @@ import { ImageUploader } from "@/components/report/ImageUploader";
 import { DescriptionField } from "@/components/report/DescriptionField";
 import { LocationCard } from "@/components/report/LocationCard";
 import { AIAnalysisCard } from "@/components/report/AIAnalysisCard";
+import { analyzeIssue } from "@/lib/gemini";
+import { fileToBase64 } from "@/lib/image";
+import { submitReport } from "@/lib/report";
+import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/report")({
   component: ReportPage,
@@ -13,28 +17,91 @@ export const Route = createFileRoute("/report")({
 function ReportPage() {
 
   const navigate = useNavigate();
+  const { user } = useAuth();
 const [location, setLocation] = useState("");
 const [description, setDescription] = useState("");
 const [image, setImage] = useState<File | null>(null);
 const [loading, setLoading] = useState(false);
+const [analysis, setAnalysis] = useState<{
+  category: string;
+  severity: string;
+  confidence: string;
+  department: string;
+  suggestion: string;
+} | null>(null);
 
-const handleAnalyze = () => {
+const handleAnalyze = async () => {
   if (!image) {
     alert("Please upload an image first.");
     return;
   }
 
   if (!description.trim()) {
-    alert("Please describe the issue.");
+    alert("Please enter a description.");
     return;
   }
 
-  setLoading(true);
+  try {
+    setLoading(true);
 
-  setTimeout(() => {
+    const imageBase64 = await fileToBase64(image);
+
+    const result = await analyzeIssue(
+      description,
+      imageBase64,
+      image.type
+    );
+
+    setAnalysis(result);
+
+  } catch (error) {
+    console.error(error);
+    alert("AI analysis failed.");
+  } finally {
     setLoading(false);
-    alert("Gemini integration coming next.");
-  }, 1500);
+  }
+};
+
+const handleSubmit = async () => {
+  if (!analysis) {
+    alert("Please analyze the issue first.");
+    return;
+  }
+
+  if (!user) {
+    alert("Please sign in first.");
+    return;
+  }
+
+  try {
+    await submitReport({
+      userId: user.uid,
+      userName: user.displayName,
+      userEmail: user.email,
+
+      description,
+
+     location,
+
+      category: analysis.category,
+      severity: analysis.severity,
+      confidence: analysis.confidence,
+      department: analysis.department,
+      suggestion: analysis.suggestion,
+    });
+
+
+navigate({ to: "/home" });
+
+  } catch (err) {
+  console.error("Submit Error:", err);
+
+  if (err instanceof Error) {
+    alert(err.message);
+  } else {
+    alert("Unknown error");
+  }
+}
 };
 
 
@@ -78,21 +145,58 @@ const handleAnalyze = () => {
   setLocation={setLocation}
 />
 
-        {/* Analyze */}
-       <AIAnalysisCard
+       {/* Analyze */}
+<AIAnalysisCard
   loading={loading}
   onAnalyze={handleAnalyze}
 />
 
+{analysis && (
+  <div className="mt-6 rounded-2xl border border-border bg-card p-6 shadow-sm">
+    <h2 className="mb-4 text-xl font-semibold">
+      ✨ AI Analysis Result
+    </h2>
+
+    <div className="space-y-3">
+
+      <p>
+        <strong>Category:</strong> {analysis.category}
+      </p>
+
+      <p>
+        <strong>Severity:</strong> {analysis.severity}
+      </p>
+
+      <p>
+        <strong>Confidence:</strong> {analysis.confidence}
+      </p>
+
+      <p>
+        <strong>Department:</strong> {analysis.department}
+      </p>
+
+      <p>
+        <strong>Suggestion:</strong> {analysis.suggestion}
+      </p>
+
+    </div>
+  </div>
+)}
+
         {/* Submit */}
         <div className="mt-6">
-          <button
-            disabled
-            className="w-full rounded-2xl bg-gray-300 py-4 font-medium text-gray-500"
-          >
-            Submit Report
-          </button>
-        </div>
+  <button
+    onClick={handleSubmit}
+    disabled={!analysis}
+    className={`w-full rounded-2xl py-4 font-medium transition ${
+      analysis
+        ? "bg-primary text-white hover:opacity-90"
+        : "bg-gray-300 text-gray-500"
+    }`}
+  >
+    Submit Report
+  </button>
+</div>
 
       </div>
     </div>

@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as ReportRouteImport } from './routes/report'
 import { Route as HomeRouteImport } from './routes/home'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as IndexRouteImport } from './routes/index'
 
 const ReportRoute = ReportRouteImport.update({
@@ -29,6 +30,11 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -37,12 +43,14 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/home': typeof HomeRoute
   '/report': typeof ReportRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/home': typeof HomeRoute
   '/report': typeof ReportRoute
@@ -50,20 +58,22 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/auth': typeof AuthRoute
   '/home': typeof HomeRoute
   '/report': typeof ReportRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/home' | '/report'
+  fullPaths: '/' | '/assistant' | '/auth' | '/home' | '/report'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/home' | '/report'
-  id: '__root__' | '/' | '/auth' | '/home' | '/report'
+  to: '/' | '/assistant' | '/auth' | '/home' | '/report'
+  id: '__root__' | '/' | '/assistant' | '/auth' | '/home' | '/report'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistantRoute: typeof AssistantRoute
   AuthRoute: typeof AuthRoute
   HomeRoute: typeof HomeRoute
   ReportRoute: typeof ReportRoute
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +121,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistantRoute: AssistantRoute,
   AuthRoute: AuthRoute,
   HomeRoute: HomeRoute,
   ReportRoute: ReportRoute,
