@@ -89,7 +89,7 @@ The platform leverages **Google Gemini AI** for intelligent issue analysis, **Fi
 * Lucide Icons
 * Sonner Toasts
 
-```
+---
 
 # 📌 Workflow
 
