@@ -118,8 +118,4 @@ The platform leverages **Google Gemini AI** for intelligent issue analysis, **Fi
 
 ---
 
-# 👨‍💻 Developed By
 
-**Mannat**
-
-Built using **React, TypeScript, Firebase, Google Gemini AI, Leaflet, TanStack Router, and Tailwind CSS.**
