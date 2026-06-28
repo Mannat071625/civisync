@@ -107,14 +107,14 @@ The platform leverages **Google Gemini AI** for intelligent issue analysis, **Fi
 
 # 💡 Future Enhancements
 
-* Image storage using Firebase Storage
-* Real-time Firestore listeners
-* Report filtering and search
-* Admin dashboard
-* Report status updates by authorities
-* Push notifications
-* Analytics dashboard
-* Community voting system
+- Image storage using Firebase Storage
+- Real-time Firestore listeners
+- Report filtering and search
+- Admin dashboard
+- Report status updates by authorities
+- Push notifications
+- Analytics dashboard
+- Community voting system
 
 ---
 
@@ -122,4 +122,4 @@ The platform leverages **Google Gemini AI** for intelligent issue analysis, **Fi
 
 **Mannat**
 
-Built as a modern AI-powered civic reporting platform using React, Firebase, Google Gemini AI, and Leaflet.
+Built using **React, TypeScript, Firebase, Google Gemini AI, Leaflet, TanStack Router, and Tailwind CSS.**
