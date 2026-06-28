@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute} from "@tanstack/react-router";
 import { useState } from "react";
 import { ArrowLeft, Camera, MapPin, Sparkles } from "lucide-react";
 import { ImageUploader } from "@/components/report/ImageUploader";
@@ -9,6 +9,8 @@ import { analyzeIssue } from "@/lib/gemini";
 import { fileToBase64 } from "@/lib/image";
 import { submitReport } from "@/lib/report";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+import { useNavigate } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/report")({
   component: ReportPage,
@@ -32,14 +34,14 @@ const [analysis, setAnalysis] = useState<{
 
 const handleAnalyze = async () => {
   if (!image) {
-    alert("Please upload an image first.");
-    return;
-  }
+  toast.error("Please upload an image first.");
+  return;
+}
 
-  if (!description.trim()) {
-    alert("Please enter a description.");
-    return;
-  }
+ if (!description.trim()) {
+  toast.error("Please enter a description.");
+  return;
+}
 
   try {
     setLoading(true);
@@ -55,23 +57,23 @@ const handleAnalyze = async () => {
     setAnalysis(result);
 
   } catch (error) {
-    console.error(error);
-    alert("AI analysis failed.");
-  } finally {
+  console.error(error);
+  toast.error("AI analysis failed.");
+}finally {
     setLoading(false);
   }
 };
 
 const handleSubmit = async () => {
   if (!analysis) {
-    alert("Please analyze the issue first.");
-    return;
-  }
+  toast.error("Please analyze the issue first.");
+  return;
+}
 
   if (!user) {
-    alert("Please sign in first.");
-    return;
-  }
+  toast.error("Please sign in first.");
+  return;
+}
 
   try {
     await submitReport({
@@ -91,18 +93,20 @@ const handleSubmit = async () => {
     });
 
 
+
+toast.success("Report submitted successfully!");
 navigate({ to: "/home" });
 
-  } catch (err) {
+ } catch (err) {
   console.error("Submit Error:", err);
 
-  if (err instanceof Error) {
-    alert(err.message);
-  } else {
-    alert("Unknown error");
-  }
+  toast.error(
+    err instanceof Error
+      ? err.message
+      : "Failed to submit report."
+  );
 }
-};
+}
 
 
   return (
@@ -112,10 +116,10 @@ navigate({ to: "/home" });
         {/* Back Button */}
         <button
           onClick={() => navigate({ to: "/home" })}
-          className="mb-6 inline-flex items-center gap-2 text-text-secondary hover:text-text-primary"
+          className="mb-6 flex items-center gap-2 text-primary hover:underline"
         >
-          <ArrowLeft className="h-5 w-5" />
-          Back
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
         </button>
 
         {/* Heading */}
@@ -181,24 +185,25 @@ navigate({ to: "/home" });
 
     </div>
   </div>
-)}
-
+)
+}
         {/* Submit */}
         <div className="mt-6">
   <button
     onClick={handleSubmit}
-    disabled={!analysis}
+    disabled={!analysis || loading}
     className={`w-full rounded-2xl py-4 font-medium transition ${
       analysis
         ? "bg-primary text-white hover:opacity-90"
         : "bg-gray-300 text-gray-500"
     }`}
   >
-    Submit Report
+    {loading ? "Submitting..." : "Submit Report"}
   </button>
 </div>
 
       </div>
     </div>
   );
+
 }

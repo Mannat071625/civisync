@@ -3,7 +3,16 @@ import { useState } from "react";
 import { Shield, Lock, Users, Sparkles, Mail, KeyRound, ArrowRight, ChevronLeft } from "lucide-react";
 import { Logo } from "@/components/civisync/Logo";
 import { CommunityIllustration } from "@/components/civisync/CommunityIllustration";
-import { loginWithGoogle, loginAsGuest } from "@/firebase/auth";
+import {
+  loginWithGoogle,
+  loginAsGuest,
+  loginWithEmail,
+  registerWithEmail,
+} from "@/firebase/auth";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from "firebase/auth";
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -18,6 +27,10 @@ type Mode = "signin" | "signup" | "forgot";
 
 function AuthPage() {
   const [mode, setMode] = useState<Mode>("signin");
+  const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+const [fullName, setFullName] = useState("");
+const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const titles: Record<Mode, { title: string; sub: string }> = {
@@ -77,41 +90,84 @@ function AuthPage() {
             <p className="mt-2 text-text-secondary">{titles[mode].sub}</p>
 
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                navigate({ to: "/home" });
-              }}
+             onSubmit={async (e) => {
+  e.preventDefault();
+
+  setLoading(true);
+
+  try {
+    if (mode === "signin") {
+      await loginWithEmail(email, password);
+    }
+
+    if (mode === "signup") {
+      await registerWithEmail(email, password);
+    }
+
+    navigate({ to: "/home" });
+  } catch (error) {
+    console.error(error);
+    alert("Authentication failed.");
+  } finally {
+    setLoading(false);
+  }
+}}
               className="mt-8 space-y-4"
             >
               {mode === "signup" && (
-                <Field label="Full name" type="text" placeholder="Aanya Sharma" />
+                <Field
+  label="Full name"
+  type="text"
+  placeholder="Aanya Sharma"
+  value={fullName}
+  onChange={(e) => setFullName(e.target.value)}
+/>
               )}
-              <Field label="Email" type="email" placeholder="you@neighbourhood.com" icon={<Mail className="h-4 w-4" />} />
+              <Field
+  label="Email"
+  type="email"
+  placeholder="you@neighbourhood.com"
+  icon={<Mail className="h-4 w-4" />}
+  value={email}
+  onChange={(e) => setEmail(e.target.value)}
+/>
               {mode !== "forgot" && (
                 <Field
-                  label="Password"
-                  type="password"
-                  placeholder="••••••••"
-                  icon={<KeyRound className="h-4 w-4" />}
-                  hint={
-                    mode === "signin" ? (
-                      <button type="button" onClick={() => setMode("forgot")} className="text-primary hover:underline">
-                        Forgot password?
-                      </button>
-                    ) : undefined
-                  }
-                />
+  label="Password"
+  type="password"
+  placeholder="••••••••"
+  icon={<KeyRound className="h-4 w-4" />}
+  value={password}
+  onChange={(e) => setPassword(e.target.value)}
+  hint={
+    mode === "signin" ? (
+      <button
+        type="button"
+        onClick={() => setMode("forgot")}
+        className="text-primary hover:underline"
+      >
+        Forgot password?
+      </button>
+    ) : undefined
+  }
+/>
               )}
 
               <button
-                type="submit"
-                className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-medium text-primary-foreground shadow-[var(--shadow-soft)] transition hover:brightness-[0.97] active:scale-[0.99]"
-              >
-                {mode === "signin" && "Sign in"}
-                {mode === "signup" && "Create account"}
-                {mode === "forgot" && "Send recovery link"}
-                <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
-              </button>
+  type="submit"
+  disabled={loading}
+  className="group inline-flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground"
+>
+  {loading
+    ? "Please wait..."
+    : mode === "signin"
+    ? "Sign in"
+    : mode === "signup"
+    ? "Create account"
+    : "Send recovery link"}
+
+  <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" />
+</button>
             </form>
 
             {mode !== "forgot" && (
@@ -181,12 +237,18 @@ function Field({
   placeholder,
   icon,
   hint,
+  value,
+  onChange,
 }: {
   label: string;
   type: string;
   placeholder?: string;
   icon?: React.ReactNode;
   hint?: React.ReactNode;
+  value: string;
+  onChange: (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => void;
 }) {
   return (
     <label className="block">
@@ -201,10 +263,14 @@ function Field({
           </span>
         )}
         <input
-          type={type}
-          placeholder={placeholder}
-          className={`h-12 w-full rounded-2xl border border-border bg-card text-text-primary placeholder:text-text-secondary/70 shadow-[var(--shadow-soft)] outline-none transition focus:border-primary focus:ring-4 focus:ring-[color-mix(in_oklab,var(--color-primary)_18%,transparent)] ${icon ? "pl-10 pr-4" : "px-4"}`}
-        />
+  type={type}
+  value={value}
+  onChange={onChange}
+  placeholder={placeholder}
+  className={`h-12 w-full rounded-2xl border border-border bg-card text-text-primary placeholder:text-text-secondary/70 shadow-[var(--shadow-soft)] outline-none transition focus:border-primary focus:ring-4 focus:ring-[color-mix(in_oklab,var(--color-primary)_18%,transparent)] ${
+    icon ? "pl-10 pr-4" : "px-4"
+  }`}
+/>
       </div>
     </label>
   );

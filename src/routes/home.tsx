@@ -11,9 +11,11 @@ import { UserAvatar } from "@/components/civisync/UserAvatar";
 import { useAuth } from "@/hooks/useAuth";
 import { logout } from "@/firebase/auth";
 import { useNavigate } from "@tanstack/react-router";
-import { getReports } from "@/lib/dashboard";
-
+import { getReports } from "@/lib/report";
+import { deleteReport } from "@/lib/report";
+import { toast } from "sonner";
 export const Route = createFileRoute("/home")({
+
   head: () => ({
     meta: [
       { title: "Community Pulse · Civisync" },
@@ -26,15 +28,14 @@ export const Route = createFileRoute("/home")({
 function HomePage() {
   const navigate = useNavigate();
   const { user ,loading} = useAuth();
-  if (loading) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      Loading...
-    </div>
-  );
-}
-  console.log("Current user:", user);
+  console.log({
+  loading,
+  user,
+});
   const [reports, setReports] = useState<any[]>([]);
+  useEffect(() => {
+  console.log("Reports state:", reports);
+}, [reports]);
   const insights = [
   {
     icon: <MessagesSquare className="h-4 w-4" />,
@@ -56,25 +57,58 @@ function HomePage() {
     tone: "success" as const,
   },
 ];
+
+const totalReports = reports.length;
+
+const highSeverity = reports.filter(
+  (r) => r.severity === "High"
+).length;
+
+const pendingReports = reports.filter(
+  (r) => r.status === "Pending"
+).length;
+
+const resolvedReports = reports.filter(
+  (r) => r.status === "Resolved"
+).length;
+
 const [loadingReports, setLoadingReports] = useState(true);
 
 useEffect(() => {
-  if (!user) return;
-
   async function loadReports() {
     try {
       const data = await getReports();
+      console.log("Loaded reports:", data);
       setReports(data);
     } catch (err) {
-      console.error("Dashboard Error:", err);
-    } finally {
-      setLoadingReports(false);
+      console.error(err);
     }
   }
 
   loadReports();
-}, [user]);
+}, []);
 
+
+if (loading) {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      Loading...
+    </div>
+  );
+}
+const handleDelete = async (id: string) => {
+  try {
+    await deleteReport(id);
+
+    toast.success("Report deleted successfully.");
+
+    const data = await getReports();
+    setReports(data);
+
+  } catch (error) {
+    toast.error("Failed to delete report.");
+  }
+};
   return (
     <div className="min-h-screen bg-background pb-32">
       {/* Header */}
@@ -122,14 +156,46 @@ useEffect(() => {
 
 
         {/* AI insight card */}
-       <AIInsightHero reports={reports} />
+       <AIInsightHero reports={reports} onViewAnalysis={() => navigate({ to: "/map" })}/>
+
+       <section className="grid grid-cols-2 gap-4 md:grid-cols-4">
+
+  <StatCard
+    title="Total Reports"
+    value={totalReports}
+    icon={<MessagesSquare className="h-5 w-5" />}
+    color="primary"
+  />
+
+  <StatCard
+    title="High Severity"
+    value={highSeverity}
+    icon={<TrafficCone className="h-5 w-5" />}
+    color="danger"
+  />
+
+  <StatCard
+    title="Pending"
+    value={pendingReports}
+    icon={<Clock className="h-5 w-5" />}
+    color="warning"
+  />
+
+  <StatCard
+    title="Resolved"
+    value={resolvedReports}
+    icon={<CheckCircle2 className="h-5 w-5" />}
+    color="success"
+  />
+
+</section>
 
         {/* Quick actions */}
         <section>
           <SectionTitle title="Quick Actions" />
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <QuickAction icon={<Camera />} label="Observe & Report" tone="primary"  onClick={() => navigate({ to: "/report" })}/>
-            <QuickAction icon={<MapPin />} label="Live Map" tone="info" />
+            <QuickAction icon={<MapPin />} label="Live Map" tone="info" onClick={() => navigate({ to: "/map" })}/>
             <QuickAction
   icon={<MessagesSquare />}
   label="Community Feed"
@@ -152,15 +218,20 @@ useEffect(() => {
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {reports.map((report: any) => (
   <IssueCard
-    key={report.id}
-    title={report.description}
-    category={report.category}
-    distance="Nearby"
-    severity={report.severity}
-    verifications={1}
-    status={report.status}
-    location={report.location}
-  />
+  key={report.id}
+  id={report.id}
+  title={report.description}
+  category={report.category}
+  distance="Nearby"
+  severity={report.severity}
+  verifications={1}
+  status={report.status}
+  location={report.location}
+  userId={report.userId}
+  currentUserId={user?.uid}
+  onDelete={handleDelete}
+  
+/>
 ))}
           </div>
         </section>
@@ -194,17 +265,6 @@ useEffect(() => {
   <InsightRow key={i} {...s} />
 ))}
             </div>
-          </div>
-        </section>
-
-        {/* Impact */}
-        <section>
-          <SectionTitle title="Community Impact" subtitle="Last 30 days" />
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <ImpactCard icon={<CheckCircle2 />} label="Issues Resolved" value={328} suffix="" trend="+12%" tone="success" />
-            <ImpactCard icon={<ShieldCheck />} label="Reports Verified" value={1247} trend="+8%" tone="primary" />
-            <ImpactCard icon={<Users2 />} label="Trust Score" value={92} suffix="%" trend="+3%" tone="info" />
-            <ImpactCard icon={<Clock />} label="Avg. Resolution" value={2.4} suffix=" days" trend="-0.6d" tone="accent" trendDown />
           </div>
         </section>
       </main>
@@ -248,7 +308,13 @@ function SectionTitle({ title, subtitle, action }: { title: string; subtitle?: s
   );
 }
 
-function AIInsightHero({ reports }: { reports: any[] }) {
+function AIInsightHero({
+  reports,
+  onViewAnalysis,
+}: {
+  reports: any[];
+  onViewAnalysis: () => void;
+}) {
   const totalReports = reports.length;
 
 const highPriority = reports.filter(
@@ -290,7 +356,7 @@ const topCategory =
           </p>
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
-          <button className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-medium text-primary-foreground shadow-[var(--shadow-soft)] transition hover:brightness-[0.97] active:scale-[0.99]">
+          <button className="inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-primary px-5 font-medium text-primary-foreground shadow-[var(--shadow-soft)] transition hover:brightness-[0.97] active:scale-[0.99]" onClick={onViewAnalysis}>
             View Analysis <ArrowRight className="h-4 w-4" />
           </button>
           <div className="flex items-center gap-2 text-xs text-text-secondary">
@@ -334,20 +400,20 @@ function QuickAction({
 }
 
 type Issue = {
+  id: string;
   title: string;
-  category: string;
+  category: "Water" | "Lighting" | "Waste" | "Greenery" | "Traffic";
   distance: string;
   severity: "Low" | "Medium" | "High";
   verifications: number;
-  status: string;
+  status: "Open" | "In progress" | "Verified" | "Resolved" | "Pending";
   location: string;
+  userId: string;
+  currentUserId?: string;
+  onDelete?: (id: string) => void;
 };
 
-const NEARBY: Issue[] = [
-  { title: "Water leak near Linden Ave", category: "Water", distance: "0.3 km", severity: "High", verifications: 24, status: "In progress", location: "Ward 12" },
-  { title: "Streetlight outage on 4th St", category: "Lighting", distance: "0.6 km", severity: "Medium", verifications: 11, status: "Verified", location: "Ward 9" },
-  { title: "Overflowing bins at Park Plaza", category: "Waste", distance: "0.9 km", severity: "Low", verifications: 6, status: "Open", location: "Ward 12" },
-];
+
 
 function categoryMeta(category: string) {
   const c = category.toLowerCase();
@@ -393,7 +459,13 @@ function categoryMeta(category: string) {
   };
 }
 
-function IssueCard(i: Issue) {
+function IssueCard({
+  id,
+  userId,
+  currentUserId,
+  onDelete,
+  ...i
+}: Issue) {
   const meta = categoryMeta(i.category);
   const sevTone = i.severity === "High" ? "danger" : i.severity === "Medium" ? "warning" : "success";
   const statusTone = i.status === "Resolved" ? "success" : i.status === "In progress" ? "warning" : i.status === "Verified" ? "info" : "primary";
@@ -425,6 +497,27 @@ function IssueCard(i: Issue) {
           <span className="ml-auto inline-flex items-center gap-1 text-xs text-text-secondary">
             <ShieldCheck className="h-3.5 w-3.5 text-success" /> {i.verifications} verified
           </span>
+          {userId === currentUserId && (
+  <button
+    onClick={() => {
+      toast("Delete this report?", {
+        description: "This action cannot be undone.",
+        action: {
+          label: "Delete",
+          onClick: () => onDelete?.(id),
+        },
+        cancel: {
+          label: "Cancel",
+          onClick: () => {},
+        },
+      });
+    }}
+    className="ml-auto rounded-lg p-2 text-red-500 hover:bg-red-100"
+    title="Delete report"
+  >
+    <Trash2 className="h-4 w-4" />
+  </button>
+)}
         </div>
       </div>
     </article>
@@ -542,4 +635,41 @@ function NavItem({ icon, label, active }: { icon: React.ReactNode; label: string
       {label}
     </button>
   );
+
+  
 }
+
+function StatCard({
+  title,
+  value,
+  icon,
+  color,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  color: "primary" | "danger" | "warning" | "success";
+}) {
+  const colors = {
+    primary: "text-primary bg-primary/10",
+    danger: "text-danger bg-danger/10",
+    warning: "text-yellow-600 bg-yellow-100",
+    success: "text-success bg-success/10",
+  };
+
+  return (
+    <div className="rounded-3xl border border-border bg-card p-5 shadow-[var(--shadow-soft)]">
+      <div className={`mb-4 inline-flex rounded-xl p-3 ${colors[color]}`}>
+        {icon}
+      </div>
+
+      <p className="text-sm text-text-secondary">
+        {title}
+      </p>
+
+      <h2 className="mt-2 text-3xl font-bold">
+        {value}
+      </h2>
+    </div>
+  );}
+
